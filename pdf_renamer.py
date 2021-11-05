@@ -12,6 +12,10 @@ try:
     import colorlog
 except ImportError:
     pass
+class Company:
+    def __init__(self, name):
+        self.name = name
+        self.number_of_appearance = 1
 
 def setup_logging():
     root = logging.getLogger()
@@ -59,14 +63,27 @@ def extract_company_name(content, file_name, dest_folder):
         ## get the company name if the first item has keyword "To "
         if x[0].startswith('To'):
             company_name = x[1]
+            if(company_name not in [x.name for x in global_company]):
+                global_company.append(Company(name=company_name))
+            else:
+                index = findCompanyByName(company_name)
+                global_company[index].number_of_appearance += 1
+            
 
     if company_name is None:
         output_msg = f'{os.path.basename(file_name)} does not contain keyword "To"'
         log.error(output_msg)
     else: 
         ##remove whitespace 
-        company_name = company_name.strip()
-        rename_file(company_name, file_name, dest_folder)
+        ##company_name = company_name.strip()
+        ##search company in the global list
+        index = findCompanyByName(company_name)
+        company_name = global_company[index].name.strip()
+        number_of_appearance = global_company[index].number_of_appearance
+        if(number_of_appearance == 1):
+            rename_file(company_name, file_name, dest_folder)
+        else:
+            rename_file(newfile_name=company_name + " "+str(number_of_appearance), ori_file_name=file_name, dest_folder=dest_folder)
 
 
 def rename_file(newfile_name,ori_file_name, dest_folder):
@@ -77,9 +94,14 @@ def rename_file(newfile_name,ori_file_name, dest_folder):
     output_msg = f' {os.path.basename(ori_file_name)} has been successfully renamed as {newfile_name}'
     log.info(output_msg)
 
+def findCompanyByName(name):
+      for i in range(len(global_company)):
+        if global_company[i].name == name:
+            return i
 
 if __name__ == "__main__":
     setup_logging()
+    global_company = []
     log = logging.getLogger(__name__)
     parser = argparse.ArgumentParser(description='A simple pdf renamer')
     parser.add_argument("-p")
